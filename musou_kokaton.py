@@ -2,7 +2,7 @@ import math
 import random
 import sys
 import time
-from tkinter import messagebox
+# from tkinter import messagebox
 from os import path
 import pygame as pg
 
@@ -277,19 +277,17 @@ class Score:
         self.font = pg.font.Font(None, 50)
         self.color = (0, 0, 255)
         self.score = 0
-        self.text = "Score"
+        self.text = "Score" #表示するテキストの一部
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         self.rect = self.image.get_rect()
         self.rect.center = 100, HEIGHT - 50
-        #self.highscore = 0
-        #self.highscore == High()
 
     def score_up(self, add):
         self.score += add
         
 
     def update(self, screen: pg.Surface):
-        self.image = self.font.render(f"Score: {self.score}", 0, self.color)
+        self.image = self.font.render(f"{self.text}: {self.score}", 0, self.color)
         screen.blit(self.image, self.rect)
 
 ###追加機能2###
@@ -400,28 +398,29 @@ def main():
             if bird.state == "hyper": #hyperモードの時
                 exps.add(Explosion(bomb, 50))  # 爆発エフェクト
                 score.score_up(1)  # 1点アップ
-            else: #normalモードの時
+            else: #normalモードの時=ゲームオーバー
                 bird.change_img(8, screen) # こうかとん悲しみエフェクト
 
-
-                high_score = Score()
+                # 過去のハイスコアを読み込む
+                high_score = Score() # ハイスコア用にインスタンス化
                 high_score.color = (0, 128, 0)
-                high_score.text = "High Score"
+                high_score.text = "High Score" # 表示するテキストの一部
                 high_score.image = high_score.font.render(f"{high_score.text}: {high_score.score}", True, high_score.color)
-                high_score.rect.center = 110, 100
+                high_score.rect.center = 110, 100 # 画面左上を0,0として、文字列の中心位置
 
-                dir_test = "ex05"
+                dir_test = "ex05" # ハイスコアファイルがあるフォルダ名（パス）
                 with open(path.join(dir_test, savefile), 'r') as f:
                     high_score.score = int(f.read())
-
+                
+                #　ハイスコア更新
                 if score.score > high_score.score:
-                    high_score.score = score.score
+                    high_score.score = score.score # ゲームオーバーの時のスコア
                     with open(path.join(dir_test, savefile), 'w') as f:
                         f.write(str(high_score.score))
                 
-                score.update(screen)
-                high_score.update(screen)
-                pg.display.update()
+                score.update(screen) #スコアを表示
+                high_score.update(screen) # ハイスコアを表示
+                pg.display.update() # 画面の更新
                 time.sleep(2)
 
                 return
