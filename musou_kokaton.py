@@ -2,12 +2,17 @@ import math
 import random
 import sys
 import time
-
+from tkinter import messagebox
+from os import path
 import pygame as pg
 
 WIDTH = 1600  # ゲームウィンドウの幅
-HEIGHT = 900  # ゲームウィンドウの高さ
+HEIGHT = 800  # ゲームウィンドウの高さ (Macでは点数が元々のサイズだと点数が見えなくて800に変更)
 
+"""
+スコアを保存
+"""
+savefile = "highscore.txt" #点数を保存するファイルを設定（txt）
 
 def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
     """
@@ -35,6 +40,7 @@ def calc_orientation(org: pg.Rect, dst: pg.Rect) -> tuple[float, float]:
     return x_diff / norm, y_diff / norm
 
 
+
 class Bird(pg.sprite.Sprite):
     """
     ゲームキャラクター（こうかとん）に関するクラス
@@ -54,7 +60,7 @@ class Bird(pg.sprite.Sprite):
         引数2 xy:こうかとん画像の位置座標タプル
         """
         super().__init__()
-        img0 = pg.transform.rotozoom(pg.image.load(f"ex04/fig/{num}.png"), 0, 2.0)
+        img0 = pg.transform.rotozoom(pg.image.load(f"ex05/fig/{num}.png"), 0, 2.0)
         img = pg.transform.flip(img0, True, False)  # デフォルトのこうかとん
         self.imgs = {
             (+1, 0): img,  # 右
@@ -80,7 +86,7 @@ class Bird(pg.sprite.Sprite):
         引数1 num:こうかとん画像ファイル名の番号
         引数2 screen:画面Surface
         """
-        self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/{num}.png"), 0, 2.0)
+        self.image = pg.transform.rotozoom(pg.image.load(f"ex05/fig/{num}.png"), 0, 2.0)
         screen.blit(self.image, self.rect)
 
     def change_state(self,state: str,hyper_life :int):
@@ -183,7 +189,7 @@ class Beam(pg.sprite.Sprite):
         self.vx, self.vy = bird.get_direction()
         angle = math.degrees(math.atan2(-self.vy, self.vx))
         self.image = pg.transform.rotozoom(
-            pg.image.load("ex04/fig/beam.png"), angle, 2.0
+            pg.image.load("ex05/fig/beam.png"), angle, 2.0
         )
         self.vx = math.cos(math.radians(angle))
         self.vy = -math.sin(math.radians(angle))
@@ -214,7 +220,7 @@ class Explosion(pg.sprite.Sprite):
         引数2 life:爆発時間
         """
         super().__init__()
-        img = pg.image.load("ex04/fig/explosion.gif")
+        img = pg.image.load("ex05/fig/explosion.gif")
         self.imgs = [img, pg.transform.flip(img, 1, 1)]
         self.image = self.imgs[0]
         self.rect = self.image.get_rect(center=obj.rect.center)
@@ -236,7 +242,7 @@ class Enemy(pg.sprite.Sprite):
     敵機に関するクラス
     """
 
-    imgs = [pg.image.load(f"./ex04/fig/alien{i}.png") for i in range(1, 4)]
+    imgs = [pg.image.load(f"./ex05/fig/alien{i}.png") for i in range(1, 4)]
 
     def __init__(self):
         super().__init__()
@@ -271,17 +277,20 @@ class Score:
         self.font = pg.font.Font(None, 50)
         self.color = (0, 0, 255)
         self.score = 0
+        self.text = "Score"
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         self.rect = self.image.get_rect()
         self.rect.center = 100, HEIGHT - 50
+        #self.highscore = 0
+        #self.highscore == High()
 
     def score_up(self, add):
         self.score += add
+        
 
     def update(self, screen: pg.Surface):
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         screen.blit(self.image, self.rect)
-
 
 ###追加機能2###
 class Shield(pg.sprite.Sprite):
@@ -311,14 +320,14 @@ class Shield(pg.sprite.Sprite):
         防御壁の発動時間を1減算し、0未満になったらkill
         """
         self.life -= 1
+
         if self.life < 0:
             self.kill()
-
 
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
-    bg_img = pg.image.load("ex04/fig/pg_bg.jpg")
+    bg_img = pg.image.load("ex05/fig/pg_bg.jpg")
     score = Score()
 
     bird = Bird(3, (900, 400))
@@ -331,7 +340,7 @@ def main():
     emys = pg.sprite.Group()
     shields = pg.sprite.Group()
 
-
+    
     tmr = 0
     clock = pg.time.Clock()
     while True:
@@ -386,18 +395,37 @@ def main():
         #     time.sleep(2)
         #     return
 
-        for bomb in pg.sprite.spritecollide(bird, bombs, True):
-
+        for bomb in pg.sprite.spritecollide(bird, bombs,True):
+            #save_score = 0
             if bird.state == "hyper": #hyperモードの時
                 exps.add(Explosion(bomb, 50))  # 爆発エフェクト
                 score.score_up(1)  # 1点アップ
             else: #normalモードの時
                 bird.change_img(8, screen) # こうかとん悲しみエフェクト
+
+
+                high_score = Score()
+                high_score.color = (0, 128, 0)
+                high_score.text = "High Score"
+                high_score.image = high_score.font.render(f"{high_score.text}: {high_score.score}", True, high_score.color)
+                high_score.rect.center = 110, 100
+
+                dir_test = "ex05"
+                with open(path.join(dir_test, savefile), 'r') as f:
+                    high_score.score = int(f.read())
+
+                if score.score > high_score.score:
+                    high_score.score = score.score
+                    with open(path.join(dir_test, savefile), 'w') as f:
+                        f.write(str(high_score.score))
+                
                 score.update(screen)
+                high_score.update(screen)
                 pg.display.update()
                 time.sleep(2)
-                return
 
+                return
+        
         for bomb in pg.sprite.groupcollide(bombs, shields, True, False).keys():
             exps.add(Explosion(bomb, 50))
             score.score_up(1)
